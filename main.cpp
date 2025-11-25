@@ -17,6 +17,7 @@ int main() {
     tree.Insert(14);
     std::cout << tree.Search(5) << std::endl;
     tree.PrettyPrint();
+    std::cout << std::endl;
     tree.remove(8);
     tree.PrettyPrint();
     return 0;
