@@ -35,3 +35,29 @@ std::tuple<int, std::unique_ptr<Node>> Node::Split(int t) {
 
     return {mid_key, std::move(right)};
 }
+
+void Node::RemoveKey(int idx) {
+    if (idx < 0 || idx >= this->keys.size()) return;
+    keys.erase(keys.begin() + idx);
+}
+
+void Node::RemoveChild(int idx) {
+    if (idx < 0 || idx >= this->children.size()) return;
+    this->children.erase(children.begin() + idx);
+}
+
+int Node::GetMin() {
+    Node* curr = this;
+    while (!curr->IsLeaf()) {
+        curr = curr->children[0].get();
+    }
+    return curr->keys[0];
+}
+
+int Node::GetMax() {
+    Node* curr = this;
+    while (!curr->IsLeaf()) {
+        curr = curr->children.back().get();
+    }
+    return curr->keys.back();
+}

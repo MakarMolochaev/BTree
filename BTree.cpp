@@ -100,3 +100,120 @@ void BTree::prettyPrintNode(Node* node, int level, const std::string& prefix) {
         prettyPrintNode(node->children[i].get(), level + 1, childPrefix);
     }
 }
+
+void BTree::remove(int key) {
+    if (!root) return;
+    Remove(this->root.get(), key);
+}
+
+void BTree::Remove(Node* node, int key) {
+    if (!node) return;
+
+    int idx = node->GetIndexFor(key);
+
+    if (idx < static_cast<int>(node->keys.size()) && node->keys[idx] == key) {
+        if (node->IsLeaf()) {
+            node->RemoveKey(idx);
+        } else {
+            this->removeFromNode(node, idx);
+        }
+    } else {
+        if (node->IsLeaf()) return;
+
+        Node* child = node->children[idx].get();
+        bool flag = (child->keys.size() == t - 1);
+
+        this->Remove(child, key);
+
+        if (flag && child->keys.size() < t - 1) {
+            if (idx != 0 && node->children[idx - 1]->keys.size() >= t) {
+                borrowFromPrev(node, idx);
+            } else if (idx != node->keys.size() && node->children[idx + 1]->keys.size() >= t) {
+                borrowFromNext(node, idx);
+            } else {
+                if (idx != node->keys.size()) {
+                    merge(node, idx);
+                } else {
+                    merge(node, idx - 1);
+                }
+            }
+        }
+    }
+
+    if (node == root.get() && node->keys.empty() && !node->children.empty()) {
+        root = std::move(node->children[0]);
+    }
+}
+
+void BTree::removeFromNode(Node* node, int idx) {
+    int key = node->keys[idx];
+
+    Node* predChild = node->children[idx].get();
+    if (predChild->keys.size() >= static_cast<size_t>(t)) {
+        int pred = predChild->GetMax();
+        node->keys[idx] = pred;
+        Remove(predChild, pred);
+    } else {
+        Node* succChild = node->children[idx + 1].get();
+        if (succChild->keys.size() >= static_cast<size_t>(t)) {
+            int succ = succChild->GetMin();
+            node->keys[idx] = succ;
+            Remove(succChild, succ);
+        } else {
+            merge(node, idx);
+            Remove(node->children[idx].get(), key);
+        }
+    }
+}
+
+void BTree::merge(Node* node, int idx) {
+    Node* child = node->children[idx].get();
+    Node* sibling = node->children[idx + 1].get();
+
+    child->keys.push_back(node->keys[idx]);
+
+    child->keys.insert(child->keys.end(), sibling->keys.begin(), sibling->keys.end());
+
+    if (!child->IsLeaf()) {
+        child->children.insert(child->children.end(),
+            std::make_move_iterator(sibling->children.begin()),
+            std::make_move_iterator(sibling->children.end()));
+    }
+
+    node->RemoveKey(idx);
+    node->RemoveChild(idx + 1);
+}
+
+void BTree::borrowFromPrev(Node* node, int idx) {
+    Node* child = node->children[idx].get();
+    Node* sibling = node->children[idx - 1].get();
+
+    child->keys.insert(child->keys.begin(), node->keys[idx - 1]);
+    if (!child->IsLeaf()) {
+        child->children.insert(child->children.begin(), std::move(sibling->children.back()));
+    }
+
+    node->keys[idx - 1] = sibling->keys.back();
+
+    sibling->RemoveKey(sibling->keys.size() - 1);
+    if (!sibling->IsLeaf()) {
+        sibling->RemoveChild(sibling->children.size() - 1);
+    }
+}
+
+void BTree::borrowFromNext(Node* node, int idx) {
+    Node* child = node->children[idx].get();
+    Node* sibling = node->children[idx + 1].get();
+
+    child->keys.push_back(node->keys[idx]);
+    if (!child->IsLeaf()) {
+        child->children.push_back(std::move(sibling->children[0]));
+    }
+
+    node->keys[idx] = sibling->keys[0];
+
+    sibling->RemoveKey(0);
+    if (!sibling->IsLeaf()) {
+        sibling->RemoveChild(0);
+    }
+}

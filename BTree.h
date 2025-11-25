@@ -17,7 +17,13 @@ class BTree {
         void Insert(int value);
         bool Search(int value);
         void PrettyPrint();
+        void remove(int value);
     private:
+        void Remove(Node* node, int key);
+        void merge(Node* node, int idx);
+        void borrowFromPrev(Node* node, int idx);
+        void borrowFromNext(Node* node, int idx);
+        void removeFromNode(Node* node, int idx);
         bool searchInNode(std::unique_ptr<Node>& node, int value);
         void insertNonFull(Node* node, int key);
         void prettyPrintNode(Node* node, int level, const std::string& prefix);
